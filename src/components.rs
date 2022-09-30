@@ -22,6 +22,9 @@ pub struct Name {
 }
 
 #[derive(Component, Debug)]
+pub struct BlocksTile {}
+
+#[derive(Component, Debug)]
 pub struct MovementSpeed {
     pub min_delay_ms: u64,
     pub last_move_time: Option<SystemTime>

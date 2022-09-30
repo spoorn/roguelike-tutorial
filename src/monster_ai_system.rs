@@ -12,7 +12,13 @@ impl<'a> System<'a> for MonsterAI {
     fn run(&mut self, (mut map, mut viewshed, mut pos, monster, player_pos, name, mut movement_speed): Self::SystemData) {
         for (viewshed, pos, monster, name, movement_speed) in (&mut viewshed, &mut pos, &monster, &name, &mut movement_speed).join() {
             if viewshed.visible_tiles.contains(&*player_pos) {
-                console::log(&format!("{} shouts insults", name.name));
+                // Stop moving if already next to player, then yell
+                let distance = rltk::DistanceAlg::Pythagoras.distance2d(Point::new(pos.x, pos.y), *player_pos);
+                if distance < 1.5 {
+                    // Attack goes here
+                    console::log(&format!("{} shouts insults", name.name));
+                    return;
+                }
                 
                 // Monster movement speed
                 if !can_move(movement_speed) {

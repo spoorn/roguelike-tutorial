@@ -4,14 +4,16 @@ use std::time::SystemTime;
 use rltk::{BResult, GameState, Rltk, RltkBuilder, RGB, RandomNumberGenerator, VirtualKeyCode, Point};
 use specs::{Builder, Join, RunNow, World, WorldExt};
 
-use crate::components::{Monster, MovementSpeed, Name, Player, Position, Renderable, Viewshed};
+use crate::components::{BlocksTile, Monster, MovementSpeed, Name, Player, Position, Renderable, Viewshed};
 use crate::map::{draw_map, Map, TileType};
+use crate::map_indexing_system::MapIndexingSystem;
 use crate::monster_ai_system::MonsterAI;
 use crate::player::{player_input, player_input_free_movement};
 use crate::visibility_system::VisibilitySystem;
 
 mod components;
 mod map;
+mod map_indexing_system;
 mod player;
 mod rect;
 mod visibility_system;
@@ -36,6 +38,8 @@ impl State {
         vis.run_now(&self.ecs);
         let mut mob = MonsterAI {};
         mob.run_now(&self.ecs);
+        let mut mapindex = MapIndexingSystem{};
+        mapindex.run_now(&self.ecs);
         self.ecs.maintain();
     }
 }
@@ -85,6 +89,7 @@ fn main() -> BResult<()> {
     world.register::<Monster>();
     world.register::<Name>();
     world.register::<MovementSpeed>();
+    world.register::<BlocksTile>();
     
     let map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
@@ -144,6 +149,7 @@ fn main() -> BResult<()> {
             .with(Monster{})
             .with(Name{ name: format!("{} #{}", &name, i) })
             .with(MovementSpeed { min_delay_ms: 1000, last_move_time: None })
+            .with(BlocksTile{})
             .build();
     }
     
