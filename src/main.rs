@@ -4,7 +4,7 @@ use std::time::SystemTime;
 use rltk::{BResult, GameState, Rltk, RltkBuilder, RGB, RandomNumberGenerator, VirtualKeyCode, Point};
 use specs::{Builder, Join, RunNow, World, WorldExt};
 
-use crate::components::{BlocksTile, Monster, MovementSpeed, Name, Player, Position, Renderable, Viewshed};
+use crate::components::{BlocksTile, CombatStats, Monster, MovementSpeed, Name, Player, Position, Renderable, Viewshed};
 use crate::map::{draw_map, Map, TileType};
 use crate::map_indexing_system::MapIndexingSystem;
 use crate::monster_ai_system::MonsterAI;
@@ -90,6 +90,7 @@ fn main() -> BResult<()> {
     world.register::<Name>();
     world.register::<MovementSpeed>();
     world.register::<BlocksTile>();
+    world.register::<CombatStats>();
     
     let map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
@@ -113,6 +114,8 @@ fn main() -> BResult<()> {
             dirty: true,
         })
         .with(Name{name: "Player".to_string() })
+        .with(MovementSpeed { min_delay_ms: 60, last_move_time: None })
+        .with(CombatStats { max_hp: 30, hp: 30, defense: 2, power: 5 })
         .build();
     
     // Monsters
@@ -150,6 +153,7 @@ fn main() -> BResult<()> {
             .with(Name{ name: format!("{} #{}", &name, i) })
             .with(MovementSpeed { min_delay_ms: 1000, last_move_time: None })
             .with(BlocksTile{})
+            .with(CombatStats { max_hp: 16, hp: 16, defense: 1, power: 4 })
             .build();
     }
     
