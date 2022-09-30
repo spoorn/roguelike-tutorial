@@ -1,10 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::time::SystemTime;
-use rltk::{BResult, GameState, Rltk, RltkBuilder, RGB, RandomNumberGenerator, VirtualKeyCode};
+use rltk::{BResult, GameState, Rltk, RltkBuilder, RGB, RandomNumberGenerator, VirtualKeyCode, Point};
 use specs::{Builder, Join, RunNow, World, WorldExt};
 
-use crate::components::{Monster, Player, Position, Renderable, Viewshed};
+use crate::components::{Monster, Name, Player, Position, Renderable, Viewshed};
 use crate::map::{draw_map, Map, TileType};
 use crate::monster_ai_system::MonsterAI;
 use crate::player::{player_input, player_input_free_movement};
@@ -82,6 +82,7 @@ fn main() -> BResult<()> {
     world.register::<Player>();
     world.register::<Viewshed>();
     world.register::<Monster>();
+    world.register::<Name>();
     
     let map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
@@ -104,18 +105,26 @@ fn main() -> BResult<()> {
             range: 8,
             dirty: true,
         })
+        .with(Name{name: "Player".to_string() })
         .build();
     
     // Monsters
     let mut rng = RandomNumberGenerator::new();
-    for room in map.rooms.iter().skip(1) {
+    for (i, room) in map.rooms.iter().skip(1).enumerate() {
         let (x, y) = room.center();
         
         let glyph;
+        let name : String;
         let roll = rng.roll_dice(1, 2);
         match roll {
-            1 => { glyph = rltk::to_cp437('g') }
-            _ => { glyph = rltk::to_cp437('o') }
+            1 => { 
+                glyph = rltk::to_cp437('g');
+                name = "Goblin".to_string();
+            }
+            _ => { 
+                glyph = rltk::to_cp437('o');
+                name = "Orc".to_string();
+            }
         }
         
         world.create_entity()
@@ -131,10 +140,14 @@ fn main() -> BResult<()> {
                 dirty: true,
             })
             .with(Monster{})
+            .with(Name{ name: format!("{} #{}", &name, i) })
             .build();
     }
     
+    // Map
     world.insert(map);
+    // Player position as a resource since it's used often
+    world.insert(Point::new(player_x, player_y));
     
     // GameState
     let gs = State { ecs: world, runstate: RunState::Running, client: Client::default() };
