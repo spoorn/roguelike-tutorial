@@ -4,7 +4,7 @@ use std::time::SystemTime;
 use rltk::{BResult, GameState, Rltk, RltkBuilder, RGB, RandomNumberGenerator, VirtualKeyCode, Point};
 use specs::{Builder, Join, RunNow, World, WorldExt};
 
-use crate::components::{Monster, Name, Player, Position, Renderable, Viewshed};
+use crate::components::{Monster, MovementSpeed, Name, Player, Position, Renderable, Viewshed};
 use crate::map::{draw_map, Map, TileType};
 use crate::monster_ai_system::MonsterAI;
 use crate::player::{player_input, player_input_free_movement};
@@ -16,6 +16,7 @@ mod player;
 mod rect;
 mod visibility_system;
 mod monster_ai_system;
+mod movement_util;
 
 #[derive(Debug, Default)]
 pub struct Client {
@@ -83,6 +84,7 @@ fn main() -> BResult<()> {
     world.register::<Viewshed>();
     world.register::<Monster>();
     world.register::<Name>();
+    world.register::<MovementSpeed>();
     
     let map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
@@ -141,6 +143,7 @@ fn main() -> BResult<()> {
             })
             .with(Monster{})
             .with(Name{ name: format!("{} #{}", &name, i) })
+            .with(MovementSpeed { min_delay_ms: 1000, last_move_time: None })
             .build();
     }
     

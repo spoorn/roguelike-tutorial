@@ -1,3 +1,4 @@
+use std::time::SystemTime;
 use rltk::RGB;
 use specs::prelude::*;
 use specs_derive::Component;
@@ -20,6 +21,11 @@ pub struct Name {
     pub name: String
 }
 
+#[derive(Component, Debug)]
+pub struct MovementSpeed {
+    pub min_delay_ms: u64,
+    pub last_move_time: Option<SystemTime>
+}
 
 #[derive(Component, Debug)]
 pub struct Player {}
