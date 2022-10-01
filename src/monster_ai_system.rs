@@ -1,27 +1,28 @@
-use std::time::{Duration, SystemTime};
-use rltk::{console, Point};
+use rltk::Point;
 use specs::prelude::*;
-use crate::{Map, Monster, MovementSpeed, Name, Position, Viewshed};
+
+use crate::{Map, Monster, MovementSpeed, Name, Position, Viewshed, WantsToMelee};
 use crate::movement_util::can_move;
 
 pub struct MonsterAI {}
 
 impl<'a> System<'a> for MonsterAI {
-    type SystemData = (WriteExpect<'a, Map>, WriteStorage<'a, Viewshed>, WriteStorage<'a, Position>, ReadStorage<'a, Monster>, ReadExpect<'a, Point>, ReadStorage<'a, Name>, WriteStorage<'a, MovementSpeed>);
+    type SystemData = (WriteExpect<'a, Map>, WriteStorage<'a, Viewshed>, WriteStorage<'a, Position>, ReadStorage<'a, Monster>, ReadExpect<'a, Point>, ReadStorage<'a, Name>, WriteStorage<'a, MovementSpeed>, WriteStorage<'a, WantsToMelee>, ReadExpect<'a, Entity>, Entities<'a>);
 
-    fn run(&mut self, (mut map, mut viewshed, mut pos, monster, player_pos, name, mut movement_speed): Self::SystemData) {
-        for (viewshed, pos, monster, name, movement_speed) in (&mut viewshed, &mut pos, &monster, &name, &mut movement_speed).join() {
+    fn run(&mut self, (mut map, mut viewshed, mut pos, monster, player_pos, name, mut movement_speed, mut wants_to_melee, player_entity, entities): Self::SystemData) {
+        for (viewshed, pos, monster, name, movement_speed, entity) in (&mut viewshed, &mut pos, &monster, &name, &mut movement_speed, &entities).join() {
             if viewshed.visible_tiles.contains(&*player_pos) {
-                // Stop moving if already next to player, then yell
+                // Monster movement speed
+                // Also used to limit attack speed for now
+                if !can_move(movement_speed) {
+                    continue;
+                }
+                
+                // Stop moving if already next to player, then attack
                 let distance = rltk::DistanceAlg::Pythagoras.distance2d(Point::new(pos.x, pos.y), *player_pos);
                 if distance < 1.5 {
                     // Attack goes here
-                    console::log(&format!("{} shouts insults", name.name));
-                    return;
-                }
-                
-                // Monster movement speed
-                if !can_move(movement_speed) {
+                    wants_to_melee.insert(entity, WantsToMelee { target: *player_entity }).expect("Could not add target");
                     continue;
                 }
                 

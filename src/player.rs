@@ -1,13 +1,11 @@
-use std::borrow::BorrowMut;
 use std::cmp::{max, min};
 use std::ops::DerefMut;
-use std::time::{Duration, SystemTime};
 
-use rltk::{console, Point, Rltk, VirtualKeyCode};
-use specs::{Join, World, WorldExt};
+use rltk::{Point, Rltk, VirtualKeyCode};
+use specs::{Entity, Join, World, WorldExt};
 
+use crate::{CombatStats, MovementSpeed, Player, Position, RunState, State, Viewshed, WantsToMelee};
 use crate::map::Map;
-use crate::{CombatStats, MovementSpeed, Player, Position, RunState, State, Viewshed};
 use crate::movement_util::can_move;
 
 // Below cannot be in a system because they require context outside the ECS, such as Rltk
@@ -15,22 +13,21 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
     let mut players = ecs.write_storage::<Player>();
     let mut viewsheds = ecs.write_storage::<Viewshed>();
+    let mut wants_to_melee = ecs.write_storage::<WantsToMelee>();
     let combat_stats = ecs.read_storage::<CombatStats>();
+    let entities = ecs.entities();
     let map = ecs.fetch::<Map>();
 
-    for (_player, pos, viewshed) in (&mut players, &mut positions, &mut viewsheds).join() {
+    for (entity, _player, pos, viewshed) in (&entities, &mut players, &mut positions, &mut viewsheds).join() {
         let destination_idx = map.xy_idx(pos.x + delta_x, pos.y + delta_y);
         
         // Targets
         for potential_target in map.tile_content[destination_idx].iter() {
             let target = combat_stats.get(*potential_target);
-            match target {
-                None => {}
-                Some(t) => {
-                    // Attack it
-                    console::log(&format!("From Hell's Heart, I stab thee!"));
-                    return; // So we don't move after attacking
-                }
+            if let Some(_target) = target {
+                // Player can target multiple different targets, so we dynamically add it here
+                wants_to_melee.insert(entity, WantsToMelee { target: *potential_target }).expect("Add target failed");
+                return;  // So we don't move after attacking
             }
         }
         
@@ -51,14 +48,17 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
 
 pub fn player_input_free_movement(gs: &mut State) {
     //let mut key = ctx.key;
-    let mut client = &mut gs.client;
+    //let mut client = &mut gs.client;
 
     // For constraining speed of free movement
-    let player = gs.ecs.read_storage::<Player>().fetched_entities().join().next().unwrap();  // Assumes 1 player
-    
-    // Doing it all in one line beats the borrow checker here
-    if !can_move(gs.ecs.write_storage::<MovementSpeed>().get_mut(player).unwrap().deref_mut()) {
-        return ()
+    //let player = gs.ecs.read_storage::<Player>().fetched_entities().join().next().unwrap();  // Assumes 1 player
+    {
+        let player = gs.ecs.write_resource::<Entity>();
+
+        // Doing it all in one line beats the borrow checker here
+        if !can_move(gs.ecs.write_storage::<MovementSpeed>().get_mut(*player).unwrap().deref_mut()) {
+            return ()
+        }
     }
     // let current_time = SystemTime::now();
     // if let Some(last_key_time) = client.last_key_time {

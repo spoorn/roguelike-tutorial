@@ -4,9 +4,11 @@ use std::time::SystemTime;
 use rltk::{BResult, GameState, Rltk, RltkBuilder, RGB, RandomNumberGenerator, VirtualKeyCode, Point};
 use specs::{Builder, Join, RunNow, World, WorldExt};
 
-use crate::components::{BlocksTile, CombatStats, Monster, MovementSpeed, Name, Player, Position, Renderable, Viewshed};
-use crate::map::{draw_map, Map, TileType};
+use crate::components::{BlocksTile, CombatStats, Monster, MovementSpeed, Name, Player, Position, Renderable, SufferDamage, Viewshed, WantsToMelee};
+use crate::damage_system::DamageSystem;
+use crate::map::{draw_map, Map};
 use crate::map_indexing_system::MapIndexingSystem;
+use crate::melee_combat_system::MeleeCombatSystem;
 use crate::monster_ai_system::MonsterAI;
 use crate::player::{player_input, player_input_free_movement};
 use crate::visibility_system::VisibilitySystem;
@@ -19,6 +21,8 @@ mod rect;
 mod visibility_system;
 mod monster_ai_system;
 mod movement_util;
+mod melee_combat_system;
+mod damage_system;
 
 #[derive(Debug, Default)]
 pub struct Client {
@@ -40,6 +44,10 @@ impl State {
         mob.run_now(&self.ecs);
         let mut mapindex = MapIndexingSystem{};
         mapindex.run_now(&self.ecs);
+        let mut melee_combat = MeleeCombatSystem{};
+        melee_combat.run_now(&self.ecs);
+        let mut damage = DamageSystem{};
+        damage.run_now(&self.ecs);
         self.ecs.maintain();
     }
 }
@@ -56,6 +64,8 @@ impl GameState for State {
             self.runstate = RunState::Running;
             //self.runstate = player_input(self, ctx);
         }
+        
+        damage_system::delete_the_dead(&mut self.ecs);
 
         draw_map(&self.ecs, ctx);
 
@@ -91,12 +101,14 @@ fn main() -> BResult<()> {
     world.register::<MovementSpeed>();
     world.register::<BlocksTile>();
     world.register::<CombatStats>();
+    world.register::<WantsToMelee>();
+    world.register::<SufferDamage>();
     
     let map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
     
     // Player
-    world
+    let player_entity = world
         .create_entity()
         .with(Position {
             x: player_x,
@@ -117,6 +129,8 @@ fn main() -> BResult<()> {
         .with(MovementSpeed { min_delay_ms: 60, last_move_time: None })
         .with(CombatStats { max_hp: 30, hp: 30, defense: 2, power: 5 })
         .build();
+    // Add the player as an Entity resource itself so it can be referenced from everywhere
+    world.insert(player_entity);
     
     // Monsters
     let mut rng = RandomNumberGenerator::new();
