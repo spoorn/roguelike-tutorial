@@ -96,6 +96,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
 
 [[package]]
+name = "bounded-vec-deque"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2225b558afc76c596898f5f1b3fc35cfce0eb1b13635cbd7d1b2a7177dc10ccd"
+
+[[package]]
 name = "bracket-algorithm-traits"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -763,6 +769,7 @@ dependencies = [
 name = "hellorust"
 version = "0.1.0"
 dependencies = [
+ "bounded-vec-deque",
  "rltk",
  "specs",
  "specs-derive",

@@ -1,11 +1,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::time::SystemTime;
+use bounded_vec_deque::BoundedVecDeque;
 use rltk::{BResult, GameState, Rltk, RltkBuilder, RGB, RandomNumberGenerator, VirtualKeyCode, Point};
 use specs::{Builder, Join, RunNow, World, WorldExt};
 
 use crate::components::{BlocksTile, CombatStats, Monster, MovementSpeed, Name, Player, Position, Renderable, SufferDamage, Viewshed, WantsToMelee};
 use crate::damage_system::DamageSystem;
+use crate::gamelog::GameLog;
 use crate::map::{draw_map, Map};
 use crate::map_indexing_system::MapIndexingSystem;
 use crate::melee_combat_system::MeleeCombatSystem;
@@ -23,6 +25,8 @@ mod monster_ai_system;
 mod movement_util;
 mod melee_combat_system;
 mod damage_system;
+mod gui;
+mod gamelog;
 
 #[derive(Debug, Default)]
 pub struct Client {
@@ -79,6 +83,8 @@ impl GameState for State {
                 ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
             }
         }
+        
+        gui::draw_ui(&self.ecs, ctx);
     }
 }
 
@@ -86,9 +92,10 @@ impl GameState for State {
 pub enum RunState { Paused, Running }
 
 fn main() -> BResult<()> {
-    let context = RltkBuilder::simple80x50()
+    let mut context = RltkBuilder::simple80x50()
         .with_title("Roguelike Tutorial")
         .build()?;
+    context.with_post_scanlines(true);
     
     // World
     let mut world = World::new();
@@ -175,6 +182,10 @@ fn main() -> BResult<()> {
     world.insert(map);
     // Player position as a resource since it's used often
     world.insert(Point::new(player_x, player_y));
+    // Game logs
+    let mut entries = BoundedVecDeque::new(127);
+    entries.push_back("Welcome to spoorn's dungeon (:<".to_string());
+    world.insert(GameLog { entries });
     
     // GameState
     let gs = State { ecs: world, runstate: RunState::Running, client: Client::default() };
