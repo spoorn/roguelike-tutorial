@@ -1,8 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::time::SystemTime;
+
 use bounded_vec_deque::BoundedVecDeque;
-use rltk::{BResult, GameState, Rltk, RltkBuilder, RGB, RandomNumberGenerator, VirtualKeyCode, Point};
+use rltk::{BResult, GameState, Point, RandomNumberGenerator, Rltk, RltkBuilder, VirtualKeyCode};
 use specs::{Builder, Join, RunNow, World, WorldExt};
 
 use crate::components::{BlocksTile, CombatStats, Monster, MovementSpeed, Name, Player, Position, Renderable, SufferDamage, Viewshed, WantsToMelee};
@@ -12,7 +13,7 @@ use crate::map::{draw_map, Map};
 use crate::map_indexing_system::MapIndexingSystem;
 use crate::melee_combat_system::MeleeCombatSystem;
 use crate::monster_ai_system::MonsterAI;
-use crate::player::{player_input, player_input_free_movement};
+use crate::player::player_input_free_movement;
 use crate::visibility_system::VisibilitySystem;
 
 mod components;
@@ -27,6 +28,7 @@ mod melee_combat_system;
 mod damage_system;
 mod gui;
 mod gamelog;
+mod spawner;
 
 #[derive(Debug, Default)]
 pub struct Client {
@@ -110,72 +112,23 @@ fn main() -> BResult<()> {
     world.register::<CombatStats>();
     world.register::<WantsToMelee>();
     world.register::<SufferDamage>();
+
+    // RNG
+    world.insert(RandomNumberGenerator::new());
     
     let map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
     
     // Player
-    let player_entity = world
-        .create_entity()
-        .with(Position {
-            x: player_x,
-            y: player_y,
-        })
-        .with(Renderable {
-            glyph: rltk::to_cp437('@'),
-            fg: RGB::named(rltk::YELLOW),
-            bg: RGB::named(rltk::BLACK),
-        })
-        .with(Player{})
-        .with(Viewshed {
-            visible_tiles: Vec::new(),
-            range: 8,
-            dirty: true,
-        })
-        .with(Name{name: "Player".to_string() })
-        .with(MovementSpeed { min_delay_ms: 60, last_move_time: None })
-        .with(CombatStats { max_hp: 30, hp: 30, defense: 2, power: 5 })
-        .build();
+    let player_entity = spawner::player(&mut world, player_x, player_y);
     // Add the player as an Entity resource itself so it can be referenced from everywhere
     world.insert(player_entity);
     
     // Monsters
-    let mut rng = RandomNumberGenerator::new();
-    for (i, room) in map.rooms.iter().skip(1).enumerate() {
+    for (_i, room) in map.rooms.iter().skip(1).enumerate() {
         let (x, y) = room.center();
         
-        let glyph;
-        let name : String;
-        let roll = rng.roll_dice(1, 2);
-        match roll {
-            1 => { 
-                glyph = rltk::to_cp437('g');
-                name = "Goblin".to_string();
-            }
-            _ => { 
-                glyph = rltk::to_cp437('o');
-                name = "Orc".to_string();
-            }
-        }
-        
-        world.create_entity()
-            .with(Position { x, y })
-            .with(Renderable {
-                glyph,
-                fg: RGB::named(rltk::RED),
-                bg: RGB::named(rltk::BLACK),
-            })
-            .with(Viewshed {
-                visible_tiles: Vec::new(),
-                range: 8,
-                dirty: true,
-            })
-            .with(Monster{})
-            .with(Name{ name: format!("{} #{}", &name, i) })
-            .with(MovementSpeed { min_delay_ms: 1000, last_move_time: None })
-            .with(BlocksTile{})
-            .with(CombatStats { max_hp: 16, hp: 16, defense: 1, power: 4 })
-            .build();
+        spawner::random_monster(&mut world, x, y);
     }
     
     // Map

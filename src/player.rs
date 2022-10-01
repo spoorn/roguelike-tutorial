@@ -91,17 +91,27 @@ pub fn player_input_free_movement(gs: &mut State) {
 
     // Free movement
     let input = rltk::INPUT.lock();
+    let mut delta_x = 0;
+    let mut delta_y = 0;
     if input.is_key_pressed(VirtualKeyCode::Left) {
-        try_move_player(-1, 0, &mut gs.ecs)
+        delta_x -= 1;
     }
     if input.is_key_pressed(VirtualKeyCode::Right) {
-        try_move_player(1, 0, &mut gs.ecs)
+        delta_x += 1;
     }
     if input.is_key_pressed(VirtualKeyCode::Up) {
-        try_move_player(0, -1, &mut gs.ecs)
+        delta_y -= 1;
     }
     if input.is_key_pressed(VirtualKeyCode::Down) {
-        try_move_player(0, 1, &mut gs.ecs)
+        delta_y += 1;
+    }
+
+    // Allow the player to move in y and x axes independently of each other
+    if delta_x != 0 {
+        try_move_player(delta_x, 0, &mut gs.ecs);
+    }
+    if delta_y != 0 {
+        try_move_player(0, delta_y, &mut gs.ecs);
     }
 }
 
