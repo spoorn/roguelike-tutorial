@@ -5,7 +5,14 @@ use crate::{CombatStats, GameLog, Name, SufferDamage, WantsToMelee};
 pub struct MeleeCombatSystem {}
 
 impl<'a> System<'a> for MeleeCombatSystem {
-    type SystemData = (Entities<'a>, WriteExpect<'a, GameLog>, WriteStorage<'a, WantsToMelee>, ReadStorage<'a, Name>, ReadStorage<'a, CombatStats>, WriteStorage<'a, SufferDamage>);
+    type SystemData = (
+        Entities<'a>,
+        WriteExpect<'a, GameLog>,
+        WriteStorage<'a, WantsToMelee>,
+        ReadStorage<'a, Name>,
+        ReadStorage<'a, CombatStats>,
+        WriteStorage<'a, SufferDamage>,
+    );
 
     fn run(&mut self, (entities, mut log, mut wants_melee, names, combat_stats, mut suffer_damage): Self::SystemData) {
         for (_entity, wants_melee, name, stats) in (&entities, &wants_melee, &names, &combat_stats).join() {
@@ -24,7 +31,7 @@ impl<'a> System<'a> for MeleeCombatSystem {
                 }
             }
         }
-        
+
         wants_melee.clear();
     }
 }

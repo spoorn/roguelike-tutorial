@@ -1,6 +1,6 @@
-use rltk::{Point, RGB, Rltk};
-use specs::{Entity, Join, WorldExt};
 use crate::{CombatStats, GameLog, InBackpack, Map, Name, Player, Position, State, World};
+use rltk::{Point, Rltk, RGB};
+use specs::{Entity, Join, WorldExt};
 
 pub fn draw_ui(gs: &mut State, ctx: &mut Rltk) {
     {
@@ -33,7 +33,7 @@ pub fn draw_ui(gs: &mut State, ctx: &mut Rltk) {
 
         draw_tooltips(ecs, ctx);
     }
-    
+
     show_inventory(gs, ctx);
 }
 
@@ -73,7 +73,7 @@ fn draw_tooltips(ecs: &World, ctx: &mut Rltk) {
     if mouse_x >= map.width || mouse_y >= map.height {
         return;
     }
-    
+
     let mut tooltip: Vec<String> = Vec::new();
     for (name, position) in (&names, &positions).join() {
         let idx = map.xy_idx(position.x, position.y);
@@ -81,7 +81,7 @@ fn draw_tooltips(ecs: &World, ctx: &mut Rltk) {
             tooltip.push(name.name.to_string());
         }
     }
-    
+
     if !tooltip.is_empty() {
         let mut width: i32 = 0;
         for s in tooltip.iter() {
@@ -90,7 +90,7 @@ fn draw_tooltips(ecs: &World, ctx: &mut Rltk) {
             }
         }
         width += 3;
-        
+
         if mouse_x > 40 {
             let arrow_pos = Point::new(mouse_x - 2, mouse_y);
             let left_x = mouse_x - width;
@@ -99,11 +99,23 @@ fn draw_tooltips(ecs: &World, ctx: &mut Rltk) {
                 ctx.print_color(left_x, y, RGB::named(rltk::WHITE), RGB::named(rltk::GREY), s);
                 let padding = (width - s.len() as i32) - 1;
                 for i in 0..padding {
-                    ctx.print_color(arrow_pos.x - i, y, RGB::named(rltk::WHITE), RGB::named(rltk::GREY), &" ".to_string());
+                    ctx.print_color(
+                        arrow_pos.x - i,
+                        y,
+                        RGB::named(rltk::WHITE),
+                        RGB::named(rltk::GREY),
+                        &" ".to_string(),
+                    );
                 }
                 y += 1;
             }
-            ctx.print_color(arrow_pos.x, arrow_pos.y, RGB::named(rltk::WHITE), RGB::named(rltk::GREY), &"->".to_string());
+            ctx.print_color(
+                arrow_pos.x,
+                arrow_pos.y,
+                RGB::named(rltk::WHITE),
+                RGB::named(rltk::GREY),
+                &"->".to_string(),
+            );
         } else {
             let arrow_pos = Point::new(mouse_x + 1, mouse_y);
             let left_x = mouse_x + 3;
@@ -112,11 +124,23 @@ fn draw_tooltips(ecs: &World, ctx: &mut Rltk) {
                 ctx.print_color(left_x + 1, y, RGB::named(rltk::WHITE), RGB::named(rltk::GREY), s);
                 let padding = (width - s.len() as i32) - 1;
                 for i in 0..padding {
-                    ctx.print_color(arrow_pos.x + 1 + i, y, RGB::named(rltk::WHITE), RGB::named(rltk::GREY), &" ".to_string());
+                    ctx.print_color(
+                        arrow_pos.x + 1 + i,
+                        y,
+                        RGB::named(rltk::WHITE),
+                        RGB::named(rltk::GREY),
+                        &" ".to_string(),
+                    );
                 }
                 y += 1;
             }
-            ctx.print_color(arrow_pos.x, arrow_pos.y, RGB::named(rltk::WHITE), RGB::named(rltk::GREY), &"<-".to_string());
+            ctx.print_color(
+                arrow_pos.x,
+                arrow_pos.y,
+                RGB::named(rltk::WHITE),
+                RGB::named(rltk::GREY),
+                &"<-".to_string(),
+            );
         }
     }
 }

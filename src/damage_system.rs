@@ -30,12 +30,14 @@ pub fn delete_the_dead(ecs: &mut World) {
                     None => {
                         dead.push(entity);
                     }
-                    Some(_) => { log.entries.push_back("You are dead!".to_string()); }
+                    Some(_) => {
+                        log.entries.push_back("You are dead!".to_string());
+                    }
                 }
             }
         }
     }
-    
+
     for victim in dead {
         ecs.delete_entity(victim).expect("Unable to delete");
     }

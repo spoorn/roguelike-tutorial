@@ -6,7 +6,10 @@ use bounded_vec_deque::BoundedVecDeque;
 use rltk::{BResult, GameState, Point, RandomNumberGenerator, Rltk, RltkBuilder, VirtualKeyCode};
 use specs::{Join, RunNow, World, WorldExt};
 
-use crate::components::{BlocksTile, CombatStats, InBackpack, Item, Monster, MovementSpeed, Name, Player, Position, Potion, Renderable, SufferDamage, Viewshed, WantsToMelee, WantsToPickupItem};
+use crate::components::{
+    BlocksTile, CombatStats, InBackpack, Item, Monster, MovementSpeed, Name, Player, Position, Potion, Renderable,
+    SufferDamage, Viewshed, WantsToMelee, WantsToPickupItem,
+};
 use crate::damage_system::DamageSystem;
 use crate::gamelog::GameLog;
 use crate::inventory_system::ItemCollectionSystem;
@@ -19,20 +22,20 @@ use crate::player::player_input;
 use crate::visibility_system::VisibilitySystem;
 
 mod components;
-mod map;
-mod map_indexing_system;
-mod player;
-mod rect;
-mod visibility_system;
-mod monster_ai_system;
-mod movement_util;
-mod melee_combat_system;
 mod damage_system;
-mod gui;
 mod gamelog;
-mod spawner;
+mod gui;
 mod inventory_system;
 mod keys_util;
+mod map;
+mod map_indexing_system;
+mod melee_combat_system;
+mod monster_ai_system;
+mod movement_util;
+mod player;
+mod rect;
+mod spawner;
+mod visibility_system;
 
 macro_rules! hashmap {
     ($( $key: expr => $val: expr ),*) => {{
@@ -45,14 +48,14 @@ macro_rules! hashmap {
 #[derive(Debug)]
 pub struct Client {
     pub show_inventory: bool,
-    pub keys: HashMap<VirtualKeyCode, KeyPress>
+    pub keys: HashMap<VirtualKeyCode, KeyPress>,
 }
 
 impl Default for Client {
     fn default() -> Self {
         Client {
             show_inventory: false,
-            keys: hashmap![VirtualKeyCode::E => KeyPress::new(100, 500), VirtualKeyCode::I => KeyPress::new(100, 2000), VirtualKeyCode::Escape => KeyPress::new(100, 100)]
+            keys: hashmap![VirtualKeyCode::E => KeyPress::new(100, 500), VirtualKeyCode::I => KeyPress::new(100, 2000), VirtualKeyCode::Escape => KeyPress::new(100, 100)],
         }
     }
 }
@@ -60,7 +63,7 @@ impl Default for Client {
 pub struct State {
     ecs: World,
     runstate: RunState,
-    client: Client
+    client: Client,
 }
 
 impl State {
@@ -69,13 +72,13 @@ impl State {
         vis.run_now(&self.ecs);
         let mut mob = MonsterAI {};
         mob.run_now(&self.ecs);
-        let mut mapindex = MapIndexingSystem{};
+        let mut mapindex = MapIndexingSystem {};
         mapindex.run_now(&self.ecs);
-        let mut melee_combat = MeleeCombatSystem{};
+        let mut melee_combat = MeleeCombatSystem {};
         melee_combat.run_now(&self.ecs);
-        let mut damage = DamageSystem{};
+        let mut damage = DamageSystem {};
         damage.run_now(&self.ecs);
-        let mut inventory = ItemCollectionSystem{};
+        let mut inventory = ItemCollectionSystem {};
         inventory.run_now(&self.ecs);
         self.ecs.maintain();
     }
@@ -92,9 +95,9 @@ impl GameState for State {
         player_input(self);
         self.run_systems();
         //self.runstate = RunState::Running;
-            //self.runstate = player_input(self, ctx);
+        //self.runstate = player_input(self, ctx);
         //}
-        
+
         damage_system::delete_the_dead(&mut self.ecs);
 
         draw_map(&self.ecs, ctx);
@@ -112,20 +115,21 @@ impl GameState for State {
                 }
             }
         }
-        
+
         gui::draw_ui(self, ctx);
     }
 }
 
 #[derive(PartialEq, Copy, Clone)]
-pub enum RunState { Paused, Running }
+pub enum RunState {
+    Paused,
+    Running,
+}
 
 fn main() -> BResult<()> {
-    let mut context = RltkBuilder::simple80x50()
-        .with_title("Roguelike Tutorial")
-        .build()?;
+    let mut context = RltkBuilder::simple80x50().with_title("Roguelike Tutorial").build()?;
     context.with_post_scanlines(true);
-    
+
     // World
     let mut world = World::new();
     world.register::<Position>();
@@ -146,20 +150,20 @@ fn main() -> BResult<()> {
 
     // RNG
     world.insert(RandomNumberGenerator::new());
-    
+
     let map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
-    
+
     // Player
     let player_entity = spawner::player(&mut world, player_x, player_y);
     // Add the player as an Entity resource itself so it can be referenced from everywhere
     world.insert(player_entity);
-    
+
     // Monsters
     for (_i, room) in map.rooms.iter().skip(1).enumerate() {
         spawner::spawn_room(&mut world, room);
     }
-    
+
     // Map
     world.insert(map);
     // Player position as a resource since it's used often
@@ -168,8 +172,12 @@ fn main() -> BResult<()> {
     let mut entries = BoundedVecDeque::new(127);
     entries.push_back("Welcome to spoorn's dungeon (:<".to_string());
     world.insert(GameLog { entries });
-    
+
     // GameState
-    let gs = State { ecs: world, runstate: RunState::Running, client: Client::default() };
+    let gs = State {
+        ecs: world,
+        runstate: RunState::Running,
+        client: Client::default(),
+    };
     rltk::main_loop(context, gs)
 }
