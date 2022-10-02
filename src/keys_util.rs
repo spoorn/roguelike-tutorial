@@ -38,7 +38,6 @@ impl KeyPress {
 /// included in the key set and won't register until the initial key set is released.
 pub fn try_press(key: VirtualKeyCode, key_press: Option<&mut KeyPress>) -> bool {
     let input = rltk::INPUT.lock();
-    println!("{:#?}", input.key_pressed_set());
     if input.is_key_pressed(key) {
         return if let Some(key_press) = key_press { can_press(key_press) } else { true };
     }

@@ -66,6 +66,10 @@ pub fn player_input(gs: &mut State) {
     }
     if keys_util::try_press(VirtualKeyCode::Escape, gs.client.keys.get_mut(&VirtualKeyCode::Escape)) {
         gs.client.show_inventory = false;
+        gs.client.drop_inventory = false;
+    }
+    if keys_util::try_press(VirtualKeyCode::G, gs.client.keys.get_mut(&VirtualKeyCode::G)) {
+        gs.client.drop_inventory = !gs.client.drop_inventory;;
     }
 
     // Movement

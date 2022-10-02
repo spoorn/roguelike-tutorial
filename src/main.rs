@@ -6,13 +6,10 @@ use bounded_vec_deque::BoundedVecDeque;
 use rltk::{BResult, GameState, Point, RandomNumberGenerator, Rltk, RltkBuilder, VirtualKeyCode};
 use specs::{Join, RunNow, World, WorldExt};
 
-use crate::components::{
-    BlocksTile, CombatStats, InBackpack, Item, Monster, MovementSpeed, Name, Player, Position, Potion, Renderable,
-    SufferDamage, Viewshed, WantsToMelee, WantsToPickupItem,
-};
+use crate::components::{BlocksTile, CombatStats, InBackpack, Item, Monster, MovementSpeed, Name, Player, Position, Potion, Renderable, SufferDamage, Viewshed, WantsToDrinkPotion, WantsToDropItem, WantsToMelee, WantsToPickupItem};
 use crate::damage_system::DamageSystem;
 use crate::gamelog::GameLog;
-use crate::inventory_system::ItemCollectionSystem;
+use crate::inventory_system::{ItemCollectionSystem, ItemDropSystem, PotionUseSystem};
 use crate::keys_util::KeyPress;
 use crate::map::{draw_map, Map};
 use crate::map_indexing_system::MapIndexingSystem;
@@ -48,6 +45,7 @@ macro_rules! hashmap {
 #[derive(Debug)]
 pub struct Client {
     pub show_inventory: bool,
+    pub drop_inventory: bool,
     pub keys: HashMap<VirtualKeyCode, KeyPress>,
 }
 
@@ -55,7 +53,8 @@ impl Default for Client {
     fn default() -> Self {
         Client {
             show_inventory: false,
-            keys: hashmap![VirtualKeyCode::E => KeyPress::new(100, 500), VirtualKeyCode::I => KeyPress::new(100, 2000), VirtualKeyCode::Escape => KeyPress::new(100, 100)],
+            drop_inventory: false,
+            keys: hashmap![VirtualKeyCode::E => KeyPress::new(100, 500), VirtualKeyCode::I => KeyPress::new(100, 500), VirtualKeyCode::Escape => KeyPress::new(100, 500), VirtualKeyCode::G => KeyPress::new(100, 500)],
         }
     }
 }
@@ -80,6 +79,10 @@ impl State {
         damage.run_now(&self.ecs);
         let mut inventory = ItemCollectionSystem {};
         inventory.run_now(&self.ecs);
+        let mut potions = PotionUseSystem {};
+        potions.run_now(&self.ecs);
+        let mut drops = ItemDropSystem {};
+        drops.run_now(&self.ecs);
         self.ecs.maintain();
     }
 }
@@ -108,7 +111,9 @@ impl GameState for State {
             let renderables = self.ecs.read_storage::<Renderable>();
             let map = self.ecs.fetch::<Map>();
 
-            for (pos, render) in (&positions, &renderables).join() {
+            let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
+            data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
+            for (pos, render) in data.iter() {
                 let idx = map.xy_idx(pos.x, pos.y);
                 if map.visible_tiles[idx] {
                     ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
@@ -147,6 +152,8 @@ fn main() -> BResult<()> {
     world.register::<Potion>();
     world.register::<WantsToPickupItem>();
     world.register::<InBackpack>();
+    world.register::<WantsToDrinkPotion>();
+    world.register::<WantsToDropItem>();
 
     // RNG
     world.insert(RandomNumberGenerator::new());
