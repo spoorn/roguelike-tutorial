@@ -42,15 +42,20 @@ impl<'a> System<'a> for ItemCollectionSystem {
 pub struct PotionUseSystem {}
 
 impl<'a> System<'a> for PotionUseSystem {
-    type SystemData = (ReadExpect<'a, Entity>,
-                       WriteExpect<'a, GameLog>,
-                       Entities<'a>,
-                       WriteStorage<'a, WantsToDrinkPotion>,
-                       ReadStorage<'a, Name>,
-                       ReadStorage<'a, Potion>,
-                       WriteStorage<'a, CombatStats>);
+    type SystemData = (
+        ReadExpect<'a, Entity>,
+        WriteExpect<'a, GameLog>,
+        Entities<'a>,
+        WriteStorage<'a, WantsToDrinkPotion>,
+        ReadStorage<'a, Name>,
+        ReadStorage<'a, Potion>,
+        WriteStorage<'a, CombatStats>,
+    );
 
-    fn run(&mut self, (player_entity, mut log, entities, mut wants_drink, names, potions, mut combat_stats): Self::SystemData) {
+    fn run(
+        &mut self,
+        (player_entity, mut log, entities, mut wants_drink, names, potions, mut combat_stats): Self::SystemData,
+    ) {
         for (entity, drink, stats) in (&entities, &mut wants_drink, &mut combat_stats).join() {
             let potion = potions.get(drink.potion);
             match potion {
@@ -58,7 +63,11 @@ impl<'a> System<'a> for PotionUseSystem {
                 Some(potion) => {
                     stats.hp = i32::min(stats.max_hp, stats.hp + potion.heal_amount);
                     if entity == *player_entity {
-                        log.entries.push_back(format!("You drink the {}, healing {} hp", names.get(drink.potion).unwrap().name, potion.heal_amount));
+                        log.entries.push_back(format!(
+                            "You drink the {}, healing {} hp",
+                            names.get(drink.potion).unwrap().name,
+                            potion.heal_amount
+                        ));
                     }
                     entities.delete(drink.potion).expect("Delete failed!");
                 }
@@ -71,15 +80,20 @@ impl<'a> System<'a> for PotionUseSystem {
 pub struct ItemDropSystem {}
 
 impl<'a> System<'a> for ItemDropSystem {
-    type SystemData = (ReadExpect<'a, Entity>,
-                       WriteExpect<'a, GameLog>,
-                       Entities<'a>,
-                       WriteStorage<'a, WantsToDropItem>,
-                       ReadStorage<'a, Name>,
-                       WriteStorage<'a, Position>,
-                       WriteStorage<'a, InBackpack>);
+    type SystemData = (
+        ReadExpect<'a, Entity>,
+        WriteExpect<'a, GameLog>,
+        Entities<'a>,
+        WriteStorage<'a, WantsToDropItem>,
+        ReadStorage<'a, Name>,
+        WriteStorage<'a, Position>,
+        WriteStorage<'a, InBackpack>,
+    );
 
-    fn run(&mut self, (player_entity, mut log, entities, mut wants_drop, names, mut positions, mut backpack): Self::SystemData) {
+    fn run(
+        &mut self,
+        (player_entity, mut log, entities, mut wants_drop, names, mut positions, mut backpack): Self::SystemData,
+    ) {
         for (entity, to_drop) in (&entities, &mut wants_drop).join() {
             let mut drop_pos = Position { x: 0, y: 0 };
             {
@@ -89,12 +103,16 @@ impl<'a> System<'a> for ItemDropSystem {
             }
             positions.insert(to_drop.item, drop_pos).expect("Could not drop item");
             backpack.remove(to_drop.item);
-            
+
             if entity == *player_entity {
-                log.entries.push_back(format!("{} dropped {}.", names.get(*player_entity).unwrap().name, names.get(to_drop.item).unwrap().name));
+                log.entries.push_back(format!(
+                    "{} dropped {}.",
+                    names.get(*player_entity).unwrap().name,
+                    names.get(to_drop.item).unwrap().name
+                ));
             }
         }
-        
+
         wants_drop.clear();
     }
 }

@@ -31,12 +31,12 @@ impl KeyPress {
     }
 }
 
-/// Tries to press a key, checking its KeyPress configuration and updating it
+/// Checks if key is and can be pressed, checking its KeyPress configuration and updating it
 ///
 /// Note: Rltk INPUT pressed key set only contains those pressed all at once until released.
 /// Meaning if you press multiple keys and hold, then press another key afterwards, it won't be
 /// included in the key set and won't register until the initial key set is released.
-pub fn try_press(key: VirtualKeyCode, key_press: Option<&mut KeyPress>) -> bool {
+pub fn check_press(key: VirtualKeyCode, key_press: Option<&mut KeyPress>) -> bool {
     let input = rltk::INPUT.lock();
     if input.is_key_pressed(key) {
         return if let Some(key_press) = key_press { can_press(key_press) } else { true };

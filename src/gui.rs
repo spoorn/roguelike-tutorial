@@ -1,7 +1,7 @@
+use crate::components::WantsToDrinkPotion;
 use crate::{CombatStats, GameLog, InBackpack, Map, Name, Player, Position, Potion, State, WantsToDropItem, World};
 use rltk::{Point, Rltk, RGB};
 use specs::{Entity, Join, WorldExt};
-use crate::components::WantsToDrinkPotion;
 
 pub fn draw_ui(gs: &mut State, ctx: &mut Rltk) {
     {
@@ -51,15 +51,22 @@ pub fn show_inventory(gs: &mut State, ctx: &mut Rltk) {
         let mut y = (25 - (count / 2)) as i32;
         ctx.draw_box(15, y - 2, 31, (count + 3) as i32, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK));
         if gs.client.drop_inventory {
-            ctx.print_color(18, y-2, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), "Drop Which Item?");
+            ctx.print_color(18, y - 2, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), "Drop Which Item?");
         } else {
             ctx.print_color(18, y - 2, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), "Inventory");
         }
-        ctx.print_color(18, y + count as i32 + 1, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), "ESCAPE to close/cancel");
+        ctx.print_color(
+            18,
+            y + count as i32 + 1,
+            RGB::named(rltk::YELLOW),
+            RGB::named(rltk::BLACK),
+            "ESCAPE to close/cancel",
+        );
 
         let mut equippable: Vec<Entity> = Vec::new();
         let mut j = 0;
-        for (entity, _pack, name) in (&entities, &backpack, &names).join().filter(|item| item.1.owner == *player_entity) {
+        for (entity, _pack, name) in (&entities, &backpack, &names).join().filter(|item| item.1.owner == *player_entity)
+        {
             ctx.set(17, y, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK), rltk::to_cp437('('));
             ctx.set(18, y, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), 97 + j as rltk::FontCharType);
             ctx.set(19, y, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK), rltk::to_cp437(')'));
@@ -69,28 +76,41 @@ pub fn show_inventory(gs: &mut State, ctx: &mut Rltk) {
             y += 1;
             j += 1;
         }
-        
 
         match ctx.key {
             Some(key) => {
                 let selection = rltk::letter_to_option(key);
                 if selection > -1 && selection < count as i32 {
                     let selection = selection as usize;
-                    
+
                     if gs.client.drop_inventory {
                         // Drop items
                         let mut drop_intents = gs.ecs.write_storage::<WantsToDropItem>();
-                        drop_intents.insert(*player_entity, WantsToDropItem { item: equippable[selection] } ).expect("Unable to insert item to drop");
+                        drop_intents
+                            .insert(
+                                *player_entity,
+                                WantsToDropItem {
+                                    item: equippable[selection],
+                                },
+                            )
+                            .expect("Unable to insert item to drop");
                     } else {
                         // Use Items
                         let potions = gs.ecs.read_storage::<Potion>();
                         if potions.contains(equippable[selection]) {
                             let mut drink_potions = gs.ecs.write_storage::<WantsToDrinkPotion>();
-                            drink_potions.insert(*player_entity, WantsToDrinkPotion { potion: equippable[selection] }).expect("Unable to insert drink potion intent");
+                            drink_potions
+                                .insert(
+                                    *player_entity,
+                                    WantsToDrinkPotion {
+                                        potion: equippable[selection],
+                                    },
+                                )
+                                .expect("Unable to insert drink potion intent");
                         }
                     }
                 }
-            },
+            }
             None => {}
         }
     }

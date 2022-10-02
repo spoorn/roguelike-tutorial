@@ -6,7 +6,10 @@ use bounded_vec_deque::BoundedVecDeque;
 use rltk::{BResult, GameState, Point, RandomNumberGenerator, Rltk, RltkBuilder, VirtualKeyCode};
 use specs::{Join, RunNow, World, WorldExt};
 
-use crate::components::{BlocksTile, CombatStats, InBackpack, Item, Monster, MovementSpeed, Name, Player, Position, Potion, Renderable, SufferDamage, Viewshed, WantsToDrinkPotion, WantsToDropItem, WantsToMelee, WantsToPickupItem};
+use crate::components::{
+    BlocksTile, CombatStats, InBackpack, Item, Monster, MovementSpeed, Name, Player, Position, Potion, Renderable,
+    SufferDamage, Viewshed, WantsToDrinkPotion, WantsToDropItem, WantsToMelee, WantsToPickupItem,
+};
 use crate::damage_system::DamageSystem;
 use crate::gamelog::GameLog;
 use crate::inventory_system::{ItemCollectionSystem, ItemDropSystem, PotionUseSystem};

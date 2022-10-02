@@ -56,20 +56,20 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
 
 pub fn player_input(gs: &mut State) {
     // Interaction
-    if keys_util::try_press(VirtualKeyCode::E, gs.client.keys.get_mut(&VirtualKeyCode::E)) {
+    if keys_util::check_press(VirtualKeyCode::E, gs.client.keys.get_mut(&VirtualKeyCode::E)) {
         get_item(&mut gs.ecs);
     }
 
     // Toggle/close inventory
-    if keys_util::try_press(VirtualKeyCode::I, gs.client.keys.get_mut(&VirtualKeyCode::I)) {
+    if keys_util::check_press(VirtualKeyCode::I, gs.client.keys.get_mut(&VirtualKeyCode::I)) {
         gs.client.show_inventory = !gs.client.show_inventory;
     }
-    if keys_util::try_press(VirtualKeyCode::Escape, gs.client.keys.get_mut(&VirtualKeyCode::Escape)) {
+    if keys_util::check_press(VirtualKeyCode::Escape, gs.client.keys.get_mut(&VirtualKeyCode::Escape)) {
         gs.client.show_inventory = false;
         gs.client.drop_inventory = false;
     }
-    if keys_util::try_press(VirtualKeyCode::G, gs.client.keys.get_mut(&VirtualKeyCode::G)) {
-        gs.client.drop_inventory = !gs.client.drop_inventory;;
+    if keys_util::check_press(VirtualKeyCode::G, gs.client.keys.get_mut(&VirtualKeyCode::G)) {
+        gs.client.drop_inventory = !gs.client.drop_inventory;
     }
 
     // Movement
