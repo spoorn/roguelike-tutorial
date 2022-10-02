@@ -1,19 +1,21 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::time::SystemTime;
+use std::collections::HashMap;
+
 use bounded_vec_deque::BoundedVecDeque;
-use rltk::{BResult, GameState, Point, RandomNumberGenerator, Rltk, RltkBuilder};
+use rltk::{BResult, GameState, Point, RandomNumberGenerator, Rltk, RltkBuilder, VirtualKeyCode};
 use specs::{Join, RunNow, World, WorldExt};
 
 use crate::components::{BlocksTile, CombatStats, InBackpack, Item, Monster, MovementSpeed, Name, Player, Position, Potion, Renderable, SufferDamage, Viewshed, WantsToMelee, WantsToPickupItem};
 use crate::damage_system::DamageSystem;
 use crate::gamelog::GameLog;
 use crate::inventory_system::ItemCollectionSystem;
+use crate::keys_util::KeyPress;
 use crate::map::{draw_map, Map};
 use crate::map_indexing_system::MapIndexingSystem;
 use crate::melee_combat_system::MeleeCombatSystem;
 use crate::monster_ai_system::MonsterAI;
-use crate::player::player_input_free_movement;
+use crate::player::player_input;
 use crate::visibility_system::VisibilitySystem;
 
 mod components;
@@ -30,18 +32,29 @@ mod gui;
 mod gamelog;
 mod spawner;
 mod inventory_system;
+mod keys_util;
 
-/// Key press with a repeat delay
-#[derive(Debug, Default)]
-pub struct KeyPress {
-    pub min_delay_ms: u64,
-    pub last_press_time: Option<SystemTime>,
-    pub just_pressed: bool
+macro_rules! hashmap {
+    ($( $key: expr => $val: expr ),*) => {{
+         let mut map = ::std::collections::HashMap::new();
+         $( map.insert($key, $val); )*
+         map
+    }}
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Client {
-    pub show_inventory: bool
+    pub show_inventory: bool,
+    pub keys: HashMap<VirtualKeyCode, KeyPress>
+}
+
+impl Default for Client {
+    fn default() -> Self {
+        Client {
+            show_inventory: false,
+            keys: hashmap![VirtualKeyCode::E => KeyPress::new(100, 500), VirtualKeyCode::I => KeyPress::new(100, 2000), VirtualKeyCode::Escape => KeyPress::new(100, 100)]
+        }
+    }
 }
 
 pub struct State {
@@ -76,7 +89,7 @@ impl GameState for State {
         //     self.run_systems();
         //     self.runstate = RunState::Paused;
         // } else {
-        player_input_free_movement(self, ctx);
+        player_input(self);
         self.run_systems();
         //self.runstate = RunState::Running;
             //self.runstate = player_input(self, ctx);

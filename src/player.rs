@@ -1,10 +1,10 @@
 use std::cmp::{max, min};
 use std::ops::DerefMut;
 
-use rltk::{Point, Rltk, VirtualKeyCode};
+use rltk::{Point, VirtualKeyCode};
 use specs::{Entity, Join, World, WorldExt};
 
-use crate::{CombatStats, GameLog, Item, MovementSpeed, Player, Position, RunState, State, Viewshed, WantsToMelee};
+use crate::{CombatStats, GameLog, Item, keys_util, MovementSpeed, Player, Position, State, Viewshed, WantsToMelee};
 use crate::components::WantsToPickupItem;
 use crate::map::Map;
 use crate::movement_util::can_move;
@@ -47,28 +47,25 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     }
 }
 
-pub fn player_input_free_movement(gs: &mut State, ctx: &mut Rltk) {
-    // Picking up litems and opening inventory are only consistent if player isn't moving due to
-    // how Rltk holds a single key pressed.  We'd have to implement our own form of key repeat delay
-    // and use the same logic as the free movement below to make this more fluid
-    
-    // Below, we use the context key from Rltk so key repeat follows the natural delay of the OS
-    // Pickup items
-    if let Some(VirtualKeyCode::E) = ctx.key {
+pub fn player_input(gs: &mut State) {
+    // Interaction
+    if keys_util::try_press(VirtualKeyCode::E, gs.client.keys.get_mut(&VirtualKeyCode::E)) {
         get_item(&mut gs.ecs);
     }
 
     // Toggle/close inventory
-    match ctx.key {
-        Some(VirtualKeyCode::I) => {
-            gs.client.show_inventory = !gs.client.show_inventory;
-        },
-        Some(VirtualKeyCode::Escape) => {
-            gs.client.show_inventory = false;
-        },
-        _ => {}
+    if keys_util::try_press(VirtualKeyCode::I, gs.client.keys.get_mut(&VirtualKeyCode::I)) {
+        gs.client.show_inventory = !gs.client.show_inventory;
+    }
+    if keys_util::try_press(VirtualKeyCode::Escape, gs.client.keys.get_mut(&VirtualKeyCode::Escape)) {
+        gs.client.show_inventory = false;
     }
     
+    // Movement
+    player_input_free_movement(gs);
+}
+
+fn player_input_free_movement(gs: &mut State) {
     //let mut key = ctx.key;
     //let mut client = &mut gs.client;
 
@@ -137,32 +134,32 @@ pub fn player_input_free_movement(gs: &mut State, ctx: &mut Rltk) {
     }
 }
 
-pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
-    // Player movement
-    match ctx.key {
-        None => { return RunState::Paused }
-        Some(key) => match key {
-            VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::A => {
-                try_move_player(-1, 0, &mut gs.ecs)
-            }
-    
-            VirtualKeyCode::Right | VirtualKeyCode::Numpad6 | VirtualKeyCode::D => {
-                try_move_player(1, 0, &mut gs.ecs)
-            }
-    
-            VirtualKeyCode::Up | VirtualKeyCode::Numpad8 | VirtualKeyCode::W => {
-                try_move_player(0, -1, &mut gs.ecs)
-            }
-    
-            VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::S => {
-                try_move_player(0, 1, &mut gs.ecs)
-            }
-            _ => { return RunState::Paused }
-        },
-    }
-    
-    RunState::Running
-}
+// pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
+//     // Player movement
+//     match ctx.key {
+//         None => { return RunState::Paused }
+//         Some(key) => match key {
+//             VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::A => {
+//                 try_move_player(-1, 0, &mut gs.ecs)
+//             }
+//     
+//             VirtualKeyCode::Right | VirtualKeyCode::Numpad6 | VirtualKeyCode::D => {
+//                 try_move_player(1, 0, &mut gs.ecs)
+//             }
+//     
+//             VirtualKeyCode::Up | VirtualKeyCode::Numpad8 | VirtualKeyCode::W => {
+//                 try_move_player(0, -1, &mut gs.ecs)
+//             }
+//     
+//             VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::S => {
+//                 try_move_player(0, 1, &mut gs.ecs)
+//             }
+//             _ => { return RunState::Paused }
+//         },
+//     }
+//     
+//     RunState::Running
+// }
 
 fn get_item(ecs: &mut World) {
     let player_pos = ecs.fetch::<Point>();
