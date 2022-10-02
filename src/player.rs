@@ -4,7 +4,8 @@ use std::ops::DerefMut;
 use rltk::{Point, Rltk, VirtualKeyCode};
 use specs::{Entity, Join, World, WorldExt};
 
-use crate::{CombatStats, MovementSpeed, Player, Position, RunState, State, Viewshed, WantsToMelee};
+use crate::{CombatStats, GameLog, Item, MovementSpeed, Player, Position, RunState, State, Viewshed, WantsToMelee};
+use crate::components::WantsToPickupItem;
 use crate::map::Map;
 use crate::movement_util::can_move;
 
@@ -46,7 +47,28 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     }
 }
 
-pub fn player_input_free_movement(gs: &mut State) {
+pub fn player_input_free_movement(gs: &mut State, ctx: &mut Rltk) {
+    // Picking up litems and opening inventory are only consistent if player isn't moving due to
+    // how Rltk holds a single key pressed.  We'd have to implement our own form of key repeat delay
+    // and use the same logic as the free movement below to make this more fluid
+    
+    // Below, we use the context key from Rltk so key repeat follows the natural delay of the OS
+    // Pickup items
+    if let Some(VirtualKeyCode::E) = ctx.key {
+        get_item(&mut gs.ecs);
+    }
+
+    // Toggle/close inventory
+    match ctx.key {
+        Some(VirtualKeyCode::I) => {
+            gs.client.show_inventory = !gs.client.show_inventory;
+        },
+        Some(VirtualKeyCode::Escape) => {
+            gs.client.show_inventory = false;
+        },
+        _ => {}
+    }
+    
     //let mut key = ctx.key;
     //let mut client = &mut gs.client;
 
@@ -140,4 +162,29 @@ pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
     }
     
     RunState::Running
+}
+
+fn get_item(ecs: &mut World) {
+    let player_pos = ecs.fetch::<Point>();
+    let positions = ecs.read_storage::<Position>();
+    let items = ecs.read_storage::<Item>();
+    let map = ecs.read_resource::<Map>();
+    let player_entity = ecs.read_resource::<Entity>();
+    let mut log = ecs.fetch_mut::<GameLog>();
+    
+    let idx = map.xy_idx(player_pos.x, player_pos.y);
+    let mut target_item : Option<Entity> = None;
+    for entity in map.tile_content[idx].iter() {
+        if items.contains(*entity) && positions.contains(*entity) {
+            target_item = Some(*entity);
+        }
+    }
+    
+    match target_item {
+        None => { log.entries.push_back("There is nothing here to pick up.".to_string()); },
+        Some(item) => {
+            let mut pickup = ecs.write_storage::<WantsToPickupItem>();
+            pickup.insert(*player_entity, WantsToPickupItem{ collected_by: *player_entity, item }).expect("Unable to insert want to pickup");
+        }
+    }
 }

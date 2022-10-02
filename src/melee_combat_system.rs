@@ -1,5 +1,5 @@
-use rltk::console;
 use specs::{Entities, Join, ReadStorage, System, WriteExpect, WriteStorage};
+
 use crate::{CombatStats, GameLog, Name, SufferDamage, WantsToMelee};
 
 pub struct MeleeCombatSystem {}

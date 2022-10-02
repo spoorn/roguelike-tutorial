@@ -1,14 +1,14 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::time::SystemTime;
-
 use bounded_vec_deque::BoundedVecDeque;
-use rltk::{BResult, GameState, Point, RandomNumberGenerator, Rltk, RltkBuilder, VirtualKeyCode};
-use specs::{Builder, Join, RunNow, World, WorldExt};
+use rltk::{BResult, GameState, Point, RandomNumberGenerator, Rltk, RltkBuilder};
+use specs::{Join, RunNow, World, WorldExt};
 
-use crate::components::{BlocksTile, CombatStats, Monster, MovementSpeed, Name, Player, Position, Renderable, SufferDamage, Viewshed, WantsToMelee};
+use crate::components::{BlocksTile, CombatStats, InBackpack, Item, Monster, MovementSpeed, Name, Player, Position, Potion, Renderable, SufferDamage, Viewshed, WantsToMelee, WantsToPickupItem};
 use crate::damage_system::DamageSystem;
 use crate::gamelog::GameLog;
+use crate::inventory_system::ItemCollectionSystem;
 use crate::map::{draw_map, Map};
 use crate::map_indexing_system::MapIndexingSystem;
 use crate::melee_combat_system::MeleeCombatSystem;
@@ -29,11 +29,19 @@ mod damage_system;
 mod gui;
 mod gamelog;
 mod spawner;
+mod inventory_system;
+
+/// Key press with a repeat delay
+#[derive(Debug, Default)]
+pub struct KeyPress {
+    pub min_delay_ms: u64,
+    pub last_press_time: Option<SystemTime>,
+    pub just_pressed: bool
+}
 
 #[derive(Debug, Default)]
 pub struct Client {
-    pub last_key_pressed: Option<VirtualKeyCode>,
-    pub last_key_time: Option<SystemTime>
+    pub show_inventory: bool
 }
 
 pub struct State {
@@ -54,6 +62,8 @@ impl State {
         melee_combat.run_now(&self.ecs);
         let mut damage = DamageSystem{};
         damage.run_now(&self.ecs);
+        let mut inventory = ItemCollectionSystem{};
+        inventory.run_now(&self.ecs);
         self.ecs.maintain();
     }
 }
@@ -62,31 +72,35 @@ impl GameState for State {
     fn tick(&mut self, ctx: &mut Rltk) {
         ctx.cls();
 
-        if self.runstate == RunState::Running {
-            self.run_systems();
-            self.runstate = RunState::Paused;
-        } else {
-            player_input_free_movement(self);
-            self.runstate = RunState::Running;
+        // if self.runstate == RunState::Running {
+        //     self.run_systems();
+        //     self.runstate = RunState::Paused;
+        // } else {
+        player_input_free_movement(self, ctx);
+        self.run_systems();
+        //self.runstate = RunState::Running;
             //self.runstate = player_input(self, ctx);
-        }
+        //}
         
         damage_system::delete_the_dead(&mut self.ecs);
 
         draw_map(&self.ecs, ctx);
 
-        let positions = self.ecs.read_storage::<Position>();
-        let renderables = self.ecs.read_storage::<Renderable>();
-        let map = self.ecs.fetch::<Map>();
+        // Renderables
+        {
+            let positions = self.ecs.read_storage::<Position>();
+            let renderables = self.ecs.read_storage::<Renderable>();
+            let map = self.ecs.fetch::<Map>();
 
-        for (pos, render) in (&positions, &renderables).join() {
-            let idx = map.xy_idx(pos.x, pos.y);
-            if map.visible_tiles[idx] {
-                ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
+            for (pos, render) in (&positions, &renderables).join() {
+                let idx = map.xy_idx(pos.x, pos.y);
+                if map.visible_tiles[idx] {
+                    ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
+                }
             }
         }
         
-        gui::draw_ui(&self.ecs, ctx);
+        gui::draw_ui(self, ctx);
     }
 }
 
@@ -112,6 +126,10 @@ fn main() -> BResult<()> {
     world.register::<CombatStats>();
     world.register::<WantsToMelee>();
     world.register::<SufferDamage>();
+    world.register::<Item>();
+    world.register::<Potion>();
+    world.register::<WantsToPickupItem>();
+    world.register::<InBackpack>();
 
     // RNG
     world.insert(RandomNumberGenerator::new());
@@ -126,9 +144,7 @@ fn main() -> BResult<()> {
     
     // Monsters
     for (_i, room) in map.rooms.iter().skip(1).enumerate() {
-        let (x, y) = room.center();
-        
-        spawner::random_monster(&mut world, x, y);
+        spawner::spawn_room(&mut world, room);
     }
     
     // Map

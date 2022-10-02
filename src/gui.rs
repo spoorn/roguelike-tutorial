@@ -1,35 +1,67 @@
 use rltk::{Point, RGB, Rltk};
-use specs::{Join, WorldExt};
-use crate::{CombatStats, GameLog, Map, Name, Player, Position, World};
+use specs::{Entity, Join, WorldExt};
+use crate::{CombatStats, GameLog, InBackpack, Map, Name, Player, Position, State, World};
 
-pub fn draw_ui(ecs: &World, ctx: &mut Rltk) {
-    ctx.draw_box(0, 43, 79, 6, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK));
-    
-    let combat_stats = ecs.read_storage::<CombatStats>();
-    let players = ecs.read_storage::<Player>();
-    for (_player, stats) in (&players, &combat_stats).join() {
-        let health = format!(" HP: {} / {}", stats.hp, stats.max_hp);
-        ctx.print_color(12, 43, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), &health);
+pub fn draw_ui(gs: &mut State, ctx: &mut Rltk) {
+    {
+        let ecs = &mut gs.ecs;
+        ctx.draw_box(0, 43, 79, 6, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK));
 
-        ctx.draw_bar_horizontal(28, 43, 51, stats.hp, stats.max_hp, RGB::named(rltk::RED), RGB::named(rltk::BLACK));
-    }
-    
-    let log = ecs.fetch::<GameLog>();
-    let mut y = 48;
-    for s in log.entries.iter().rev() {
-        if y >= 44 {
-            ctx.print(2, y, s);
-        } else {
-            break;
+        let combat_stats = ecs.read_storage::<CombatStats>();
+        let players = ecs.read_storage::<Player>();
+        for (_player, stats) in (&players, &combat_stats).join() {
+            let health = format!(" HP: {} / {}", stats.hp, stats.max_hp);
+            ctx.print_color(12, 43, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), &health);
+
+            ctx.draw_bar_horizontal(28, 43, 51, stats.hp, stats.max_hp, RGB::named(rltk::RED), RGB::named(rltk::BLACK));
         }
-        y -= 1;
+
+        let log = ecs.fetch::<GameLog>();
+        let mut y = 48;
+        for s in log.entries.iter().rev() {
+            if y >= 44 {
+                ctx.print(2, y, s);
+            } else {
+                break;
+            }
+            y -= 1;
+        }
+
+        // Mouse tooltip
+        let mouse_pos = ctx.mouse_pos();
+        ctx.set_bg(mouse_pos.0, mouse_pos.1, RGB::named(rltk::PINK));
+
+        draw_tooltips(ecs, ctx);
     }
     
-    // Mouse tooltip
-    let mouse_pos = ctx.mouse_pos();
-    ctx.set_bg(mouse_pos.0, mouse_pos.1, RGB::named(rltk::PINK));
-    
-    draw_tooltips(ecs, ctx);
+    show_inventory(gs, ctx);
+}
+
+pub fn show_inventory(gs: &mut State, ctx: &mut Rltk) {
+    if gs.client.show_inventory {
+        let player_entity = gs.ecs.fetch::<Entity>();
+        let names = gs.ecs.read_storage::<Name>();
+        let backpack = gs.ecs.read_storage::<InBackpack>();
+
+        let inventory = (&backpack, &names).join().filter(|item| item.0.owner == *player_entity);
+        let count = inventory.count();
+
+        let mut y = (25 - (count / 2)) as i32;
+        ctx.draw_box(15, y - 2, 31, (count + 3) as i32, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK));
+        ctx.print_color(18, y - 2, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), "Inventory");
+        ctx.print_color(18, y + count as i32 + 1, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), "ESCAPE to close");
+
+        let mut j = 0;
+        for (_pack, name) in (&backpack, &names).join().filter(|item| item.0.owner == *player_entity) {
+            ctx.set(17, y, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK), rltk::to_cp437('('));
+            ctx.set(18, y, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), 97 + j as rltk::FontCharType);
+            ctx.set(19, y, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK), rltk::to_cp437(')'));
+
+            ctx.print(21, y, &name.name.to_string());
+            y += 1;
+            j += 1;
+        }
+    }
 }
 
 fn draw_tooltips(ecs: &World, ctx: &mut Rltk) {

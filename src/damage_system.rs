@@ -1,5 +1,5 @@
-use rltk::console;
 use specs::{Entity, Join, System, World, WorldExt, WriteStorage};
+
 use crate::{CombatStats, GameLog, Player, SufferDamage};
 
 pub struct DamageSystem {}

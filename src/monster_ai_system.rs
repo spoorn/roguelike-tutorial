@@ -10,7 +10,7 @@ impl<'a> System<'a> for MonsterAI {
     type SystemData = (WriteExpect<'a, Map>, WriteStorage<'a, Viewshed>, WriteStorage<'a, Position>, ReadStorage<'a, Monster>, ReadExpect<'a, Point>, ReadStorage<'a, Name>, WriteStorage<'a, MovementSpeed>, WriteStorage<'a, WantsToMelee>, ReadExpect<'a, Entity>, Entities<'a>);
 
     fn run(&mut self, (mut map, mut viewshed, mut pos, monster, player_pos, name, mut movement_speed, mut wants_to_melee, player_entity, entities): Self::SystemData) {
-        for (viewshed, pos, monster, name, movement_speed, entity) in (&mut viewshed, &mut pos, &monster, &name, &mut movement_speed, &entities).join() {
+        for (viewshed, pos, _monster, _name, movement_speed, entity) in (&mut viewshed, &mut pos, &monster, &name, &mut movement_speed, &entities).join() {
             if viewshed.visible_tiles.contains(&*player_pos) {
                 // Monster movement speed
                 // Also used to limit attack speed for now
