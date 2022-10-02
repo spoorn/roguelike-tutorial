@@ -7,7 +7,7 @@ pub enum KeyState {
     PRESSED,
     HOLD,
     #[default]
-    RELEASED
+    RELEASED,
 }
 
 /// Key press with a repeat delay
@@ -17,7 +17,7 @@ pub struct KeyPress {
     pub last_press_time: Option<SystemTime>,
     /// True if key was just pressed and needs to wait for repeat delay, else false
     pub state: KeyState,
-    pub repeat_delay_ms: u64
+    pub repeat_delay_ms: u64,
 }
 
 impl KeyPress {
@@ -32,7 +32,7 @@ impl KeyPress {
 }
 
 /// Tries to press a key, checking its KeyPress configuration and updating it
-/// 
+///
 /// Note: Rltk INPUT pressed key set only contains those pressed all at once until released.
 /// Meaning if you press multiple keys and hold, then press another key afterwards, it won't be
 /// included in the key set and won't register until the initial key set is released.
@@ -44,9 +44,9 @@ pub fn try_press(key: VirtualKeyCode, key_press: Option<&mut KeyPress>) -> bool 
             can_press(key_press)
         } else {
             true
-        }
+        };
     }
-    
+
     if let Some(key_press) = key_press {
         key_press.state = KeyState::RELEASED;
     }
@@ -62,15 +62,15 @@ fn can_press(key: &mut KeyPress) -> bool {
         if key.state == KeyState::PRESSED {
             // Repeat delay
             if elapsed < Duration::from_millis(key.repeat_delay_ms) {
-                return false
+                return false;
             } else {
                 key.state = KeyState::HOLD;
             }
         }
-        
+
         // Constrains speed of key presses
         if elapsed < Duration::from_millis(key.min_delay_ms) {
-            return false
+            return false;
         }
     }
 
