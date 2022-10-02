@@ -5,10 +5,7 @@ use crate::{CombatStats, GameLog, Player, SufferDamage};
 pub struct DamageSystem {}
 
 impl<'a> System<'a> for DamageSystem {
-    type SystemData = (
-        WriteStorage<'a, CombatStats>,
-        WriteStorage<'a, SufferDamage>,
-    );
+    type SystemData = (WriteStorage<'a, CombatStats>, WriteStorage<'a, SufferDamage>);
 
     fn run(&mut self, (mut combat_stats, mut suffer_damage): Self::SystemData) {
         for (mut stats, damage) in (&mut combat_stats, &suffer_damage).join() {
@@ -33,14 +30,12 @@ pub fn delete_the_dead(ecs: &mut World) {
                     None => {
                         dead.push(entity);
                     }
-                    Some(_) => {
-                        log.entries.push_back("You are dead!".to_string());
-                    }
+                    Some(_) => { log.entries.push_back("You are dead!".to_string()); }
                 }
             }
         }
     }
-
+    
     for victim in dead {
         ecs.delete_entity(victim).expect("Unable to delete");
     }

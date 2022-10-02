@@ -1,5 +1,5 @@
-use crate::MovementSpeed;
 use std::time::{Duration, SystemTime};
+use crate::MovementSpeed;
 
 // Ideally this should be based on tick time, not system time!
 pub fn can_move(movement_speed: &mut MovementSpeed) -> bool {
@@ -9,7 +9,7 @@ pub fn can_move(movement_speed: &mut MovementSpeed) -> bool {
 
         // Constrains speed of movement
         if elapsed < Duration::from_millis(movement_speed.min_delay_ms) {
-            return false;
+            return false
         }
     }
 

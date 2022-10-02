@@ -4,13 +4,10 @@ use std::ops::DerefMut;
 use rltk::{Point, VirtualKeyCode};
 use specs::{Entity, Join, World, WorldExt};
 
+use crate::{CombatStats, GameLog, Item, keys_util, MovementSpeed, Player, Position, State, Viewshed, WantsToMelee};
 use crate::components::WantsToPickupItem;
 use crate::map::Map;
 use crate::movement_util::can_move;
-use crate::{
-    keys_util, CombatStats, GameLog, Item, MovementSpeed, Player, Position, State, Viewshed,
-    WantsToMelee,
-};
 
 // Below cannot be in a system because they require context outside the ECS, such as Rltk
 pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
@@ -22,28 +19,19 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let entities = ecs.entities();
     let map = ecs.fetch::<Map>();
 
-    for (entity, _player, pos, viewshed) in
-        (&entities, &mut players, &mut positions, &mut viewsheds).join()
-    {
+    for (entity, _player, pos, viewshed) in (&entities, &mut players, &mut positions, &mut viewsheds).join() {
         let destination_idx = map.xy_idx(pos.x + delta_x, pos.y + delta_y);
-
+        
         // Targets
         for potential_target in map.tile_content[destination_idx].iter() {
             let target = combat_stats.get(*potential_target);
             if let Some(_target) = target {
                 // Player can target multiple different targets, so we dynamically add it here
-                wants_to_melee
-                    .insert(
-                        entity,
-                        WantsToMelee {
-                            target: *potential_target,
-                        },
-                    )
-                    .expect("Add target failed");
-                return; // So we don't move after attacking
+                wants_to_melee.insert(entity, WantsToMelee { target: *potential_target }).expect("Add target failed");
+                return;  // So we don't move after attacking
             }
         }
-
+        
         // Move
         if !map.blocked[destination_idx] {
             pos.x = min(79, max(0, pos.x + delta_x));
@@ -61,27 +49,18 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
 
 pub fn player_input(gs: &mut State) {
     // Interaction
-    if keys_util::try_press(
-        VirtualKeyCode::E,
-        gs.client.keys.get_mut(&VirtualKeyCode::E),
-    ) {
+    if keys_util::try_press(VirtualKeyCode::E, gs.client.keys.get_mut(&VirtualKeyCode::E)) {
         get_item(&mut gs.ecs);
     }
 
     // Toggle/close inventory
-    if keys_util::try_press(
-        VirtualKeyCode::I,
-        gs.client.keys.get_mut(&VirtualKeyCode::I),
-    ) {
+    if keys_util::try_press(VirtualKeyCode::I, gs.client.keys.get_mut(&VirtualKeyCode::I)) {
         gs.client.show_inventory = !gs.client.show_inventory;
     }
-    if keys_util::try_press(
-        VirtualKeyCode::Escape,
-        gs.client.keys.get_mut(&VirtualKeyCode::Escape),
-    ) {
+    if keys_util::try_press(VirtualKeyCode::Escape, gs.client.keys.get_mut(&VirtualKeyCode::Escape)) {
         gs.client.show_inventory = false;
     }
-
+    
     // Movement
     player_input_free_movement(gs);
 }
@@ -96,25 +75,19 @@ fn player_input_free_movement(gs: &mut State) {
         let player = gs.ecs.write_resource::<Entity>();
 
         // Doing it all in one line beats the borrow checker here
-        if !can_move(
-            gs.ecs
-                .write_storage::<MovementSpeed>()
-                .get_mut(*player)
-                .unwrap()
-                .deref_mut(),
-        ) {
-            return ();
+        if !can_move(gs.ecs.write_storage::<MovementSpeed>().get_mut(*player).unwrap().deref_mut()) {
+            return ()
         }
     }
     // let current_time = SystemTime::now();
     // if let Some(last_key_time) = client.last_key_time {
     //     let elapsed = current_time.duration_since(last_key_time).unwrap();
-    //
+    // 
     //     // Constrains speed of movement
     //     if elapsed < Duration::from_millis(60) {
     //         return ()
     //     }
-    //
+    // 
     //     // if let Some(last_key) = client.last_key_pressed {
     //     //     let input = rltk::INPUT.lock();
     //     //     // Bypass keyboard repeat delay
@@ -169,22 +142,22 @@ fn player_input_free_movement(gs: &mut State) {
 //             VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::A => {
 //                 try_move_player(-1, 0, &mut gs.ecs)
 //             }
-//
+//     
 //             VirtualKeyCode::Right | VirtualKeyCode::Numpad6 | VirtualKeyCode::D => {
 //                 try_move_player(1, 0, &mut gs.ecs)
 //             }
-//
+//     
 //             VirtualKeyCode::Up | VirtualKeyCode::Numpad8 | VirtualKeyCode::W => {
 //                 try_move_player(0, -1, &mut gs.ecs)
 //             }
-//
+//     
 //             VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::S => {
 //                 try_move_player(0, 1, &mut gs.ecs)
 //             }
 //             _ => { return RunState::Paused }
 //         },
 //     }
-//
+//     
 //     RunState::Running
 // }
 
@@ -195,31 +168,20 @@ fn get_item(ecs: &mut World) {
     let map = ecs.read_resource::<Map>();
     let player_entity = ecs.read_resource::<Entity>();
     let mut log = ecs.fetch_mut::<GameLog>();
-
+    
     let idx = map.xy_idx(player_pos.x, player_pos.y);
-    let mut target_item: Option<Entity> = None;
+    let mut target_item : Option<Entity> = None;
     for entity in map.tile_content[idx].iter() {
         if items.contains(*entity) && positions.contains(*entity) {
             target_item = Some(*entity);
         }
     }
-
+    
     match target_item {
-        None => {
-            log.entries
-                .push_back("There is nothing here to pick up.".to_string());
-        }
+        None => { log.entries.push_back("There is nothing here to pick up.".to_string()); },
         Some(item) => {
             let mut pickup = ecs.write_storage::<WantsToPickupItem>();
-            pickup
-                .insert(
-                    *player_entity,
-                    WantsToPickupItem {
-                        collected_by: *player_entity,
-                        item,
-                    },
-                )
-                .expect("Unable to insert want to pickup");
+            pickup.insert(*player_entity, WantsToPickupItem{ collected_by: *player_entity, item }).expect("Unable to insert want to pickup");
         }
     }
 }
