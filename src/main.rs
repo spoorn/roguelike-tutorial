@@ -6,7 +6,7 @@ use bounded_vec_deque::BoundedVecDeque;
 use rltk::{BResult, GameState, Point, RandomNumberGenerator, Rltk, RltkBuilder, VirtualKeyCode};
 use specs::{Join, RunNow, World, WorldExt};
 
-use crate::components::{BlocksTile, CombatStats, Consumable, InBackpack, Item, Monster, MovementSpeed, Name, Player, Position, ProvidesHealing, Renderable, SufferDamage, Viewshed, WantsToDropItem, WantsToMelee, WantsToPickupItem, WantsToUseItem};
+use crate::components::{BlocksTile, CombatStats, Consumable, InBackpack, InflictsDamage, Item, Monster, MovementSpeed, Name, Player, Position, ProvidesHealing, Ranged, Renderable, SufferDamage, Viewshed, WantsToDropItem, WantsToMelee, WantsToPickupItem, WantsToUseItem};
 use crate::damage_system::DamageSystem;
 use crate::gamelog::GameLog;
 use crate::inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemUseSystem};
@@ -155,6 +155,8 @@ fn main() -> BResult<()> {
     world.register::<WantsToUseItem>();
     world.register::<Consumable>();
     world.register::<WantsToDropItem>();
+    world.register::<Ranged>();
+    world.register::<InflictsDamage>();
 
     // RNG
     world.insert(RandomNumberGenerator::new());
