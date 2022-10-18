@@ -1,8 +1,9 @@
 use crate::map::MAP_WIDTH;
 use crate::rect::Rect;
-use crate::{BlocksTile, CombatStats, Consumable, Item, Monster, MovementSpeed, Name, Player, Position, ProvidesHealing, Renderable, Viewshed};
+use crate::{BlocksTile, CombatStats, Consumable, Item, Monster, MovementSpeed, Name, Player, Position, ProvidesHealing, Renderable, SerializeMe, Viewshed};
 use rltk::{RandomNumberGenerator, RGB};
 use specs::{Builder, Entity, World, WorldExt};
+use specs::saveload::{MarkedBuilder, SimpleMarker};
 use crate::components::{InflictsDamage, Ranged};
 
 const MAX_MONSTERS: i32 = 4;
@@ -40,6 +41,7 @@ pub fn player(ecs: &mut World, player_x: i32, player_y: i32) -> Entity {
             defense: 2,
             power: 5,
         })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build()
 }
 
@@ -155,6 +157,7 @@ fn monster<S: ToString>(ecs: &mut World, x: i32, y: i32, glyph: rltk::FontCharTy
             defense: 1,
             power: 4,
         })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build()
 }
 
@@ -173,6 +176,7 @@ fn health_potion(ecs: &mut World, x: i32, y: i32) -> Entity {
         .with(Item {})
         .with(Consumable {})
         .with(ProvidesHealing { heal_amount: 8 })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build()
 }
 
@@ -190,5 +194,6 @@ fn magic_missile_scroll(ecs: &mut World, x: i32, y: i32) -> Entity {
         .with(Consumable {})
         .with(Ranged { range: 6 })
         .with(InflictsDamage { damage: 8 })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build()
 }

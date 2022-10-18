@@ -120,6 +120,7 @@ dependencies = [
  "byteorder",
  "lazy_static",
  "parking_lot",
+ "serde",
 ]
 
 [[package]]
@@ -128,6 +129,7 @@ version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4db22c32c68bd9330ab982f8ff7ffe7b10541d16ea7d7d51aac074499850402b"
 dependencies = [
+ "serde",
  "ultraviolet",
 ]
 
@@ -176,6 +178,7 @@ dependencies = [
  "rand",
  "rand_xorshift",
  "regex",
+ "serde",
 ]
 
 [[package]]
@@ -771,6 +774,8 @@ version = "0.1.0"
 dependencies = [
  "bounded-vec-deque",
  "rltk",
+ "serde",
+ "serde_json",
  "specs",
  "specs-derive",
 ]
@@ -836,6 +841,12 @@ checksum = "b2b3ea6ff95e175473f8ffe6a7eb7c00d054240321b84c57051175fe3c1e075e"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "itoa"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4217ad341ebadf8d8e724e264f13e593e0648f5b3e94b3896a5df283be015ecc"
 
 [[package]]
 name = "jni-sys"
@@ -1371,6 +1382,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d25bf25ec5ae4a3f1b92f929810509a2f53d7dca2f50b794ff57e3face536c8f"
 dependencies = [
  "rand_core",
+ "serde",
 ]
 
 [[package]]
@@ -1473,6 +1485,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ryu"
+version = "1.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4501abdff3ae82a1c1b477a17252eb69cee9e66eb915c1abaa4f44d873df9f09"
+
+[[package]]
 name = "safe_arch"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1513,6 +1531,31 @@ name = "serde"
 version = "1.0.145"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "728eb6351430bccb993660dfffc5a72f91ccc1295abaa8ce19b27ebe4f75568b"
+dependencies = [
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.145"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81fa1584d3d1bcacd84c277a0dfe21f5b0f6accf4a23d04d4c6d61f1af522b4c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "serde_json"
+version = "1.0.86"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41feea4228a6f1cd09ec7a3593a682276702cd67b5273544757dae23c096f074"
+dependencies = [
+ "itoa",
+ "ryu",
+ "serde",
+]
 
 [[package]]
 name = "shared_library"
@@ -1598,6 +1641,7 @@ dependencies = [
  "hibitset",
  "log",
  "rayon",
+ "serde",
  "shred",
  "shrev",
  "tuple_utils",

@@ -7,7 +7,7 @@ use specs::{Entity, Join, World, WorldExt};
 use crate::components::WantsToPickupItem;
 use crate::map::Map;
 use crate::movement_util::can_move;
-use crate::{keys_util, CombatStats, GameLog, Item, MovementSpeed, Player, Position, State, Viewshed, WantsToMelee};
+use crate::{keys_util, CombatStats, GameLog, Item, MovementSpeed, Player, Position, State, Viewshed, WantsToMelee, RunState};
 
 // Below cannot be in a system because they require context outside the ECS, such as Rltk
 pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
@@ -54,7 +54,7 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     }
 }
 
-pub fn player_input(gs: &mut State) {
+pub fn player_input(gs: &mut State) -> RunState {
     // Interaction
     if keys_util::check_press(VirtualKeyCode::E, gs.client.keys.get_mut(&VirtualKeyCode::E)) {
         get_item(&mut gs.ecs);
@@ -65,15 +65,19 @@ pub fn player_input(gs: &mut State) {
         gs.client.show_inventory = !gs.client.show_inventory;
     }
     if keys_util::check_press(VirtualKeyCode::Escape, gs.client.keys.get_mut(&VirtualKeyCode::Escape)) {
+        if !gs.client.show_inventory {
+            return RunState::SaveGame;
+        }
         gs.client.show_inventory = false;
         gs.client.drop_inventory = false;
     }
     if keys_util::check_press(VirtualKeyCode::G, gs.client.keys.get_mut(&VirtualKeyCode::G)) && gs.client.show_inventory {
         gs.client.drop_inventory = !gs.client.drop_inventory;
     }
-
+    
     // Movement
     player_input_free_movement(gs);
+    RunState::Running
 }
 
 fn player_input_free_movement(gs: &mut State) {

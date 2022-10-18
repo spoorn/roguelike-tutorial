@@ -6,9 +6,10 @@ use bounded_vec_deque::BoundedVecDeque;
 use rltk::{BResult, GameState, Point, RandomNumberGenerator, Rltk, RltkBuilder, VirtualKeyCode};
 use specs::{Join, RunNow, World, WorldExt};
 
-use crate::components::{BlocksTile, CombatStats, Consumable, InBackpack, InflictsDamage, Item, Monster, MovementSpeed, Name, Player, Position, ProvidesHealing, Ranged, Renderable, SufferDamage, Viewshed, WantsToDropItem, WantsToMelee, WantsToPickupItem, WantsToUseItem};
+use crate::components::{BlocksTile, CombatStats, Consumable, InBackpack, InflictsDamage, Item, Monster, MovementSpeed, Name, Player, Position, ProvidesHealing, Ranged, Renderable, SerializationHelper, SerializeMe, SufferDamage, Viewshed, WantsToDropItem, WantsToMelee, WantsToPickupItem, WantsToUseItem};
 use crate::damage_system::DamageSystem;
 use crate::gamelog::GameLog;
+use crate::gui::{MainMenuResult, MainMenuSelection};
 use crate::inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemUseSystem};
 use crate::keys_util::KeyPress;
 use crate::map::{draw_map, Map};
@@ -17,6 +18,7 @@ use crate::melee_combat_system::MeleeCombatSystem;
 use crate::monster_ai_system::MonsterAI;
 use crate::player::player_input;
 use crate::visibility_system::VisibilitySystem;
+use specs::saveload::{SimpleMarker, SimpleMarkerAllocator};
 
 mod components;
 mod damage_system;
@@ -33,6 +35,7 @@ mod player;
 mod rect;
 mod spawner;
 mod visibility_system;
+mod save_load_system;
 
 macro_rules! hashmap {
     ($( $key: expr => $val: expr ),*) => {{
@@ -61,7 +64,6 @@ impl Default for Client {
 
 pub struct State {
     ecs: World,
-    runstate: RunState,
     client: Client,
 }
 
@@ -89,46 +91,80 @@ impl State {
 
 impl GameState for State {
     fn tick(&mut self, ctx: &mut Rltk) {
-        ctx.cls();
-
-        // if self.runstate == RunState::Running {
-        //     self.run_systems();
-        //     self.runstate = RunState::Paused;
-        // } else {
-        player_input(self);
-        self.run_systems();
-        //self.runstate = RunState::Running;
-        //self.runstate = player_input(self, ctx);
-        //}
-
-        damage_system::delete_the_dead(&mut self.ecs);
-
-        draw_map(&self.ecs, ctx);
-
-        // Renderables
+        let mut newrunstate;
         {
-            let positions = self.ecs.read_storage::<Position>();
-            let renderables = self.ecs.read_storage::<Renderable>();
-            let map = self.ecs.fetch::<Map>();
-
-            let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
-            data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
-            for (pos, render) in data.iter() {
-                let idx = map.xy_idx(pos.x, pos.y);
-                if map.visible_tiles[idx] {
-                    ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
+            let runstate = self.ecs.fetch::<RunState>();
+            newrunstate = *runstate;
+        }
+        
+        ctx.cls();
+        
+        match newrunstate {
+            RunState::MainMenu {..} => {
+                let result = gui::main_menu(self, ctx);
+                match result {
+                    MainMenuResult::NoSelection { selected } => {
+                        newrunstate = RunState::MainMenu { menu_selection: selected }
+                    }
+                    MainMenuResult::Selected { selected } => {
+                        match selected {
+                            MainMenuSelection::NewGame => {
+                                println!("new game");
+                            }
+                            MainMenuSelection::LoadGame => {
+                                println!("load game");
+                            }
+                            MainMenuSelection::Quit => { std::process::exit(0); }
+                        }
+                    }
                 }
+            },
+            RunState::Running => {
+                newrunstate = player_input(self);
+                self.run_systems();
+
+                damage_system::delete_the_dead(&mut self.ecs);
+
+                draw_map(&self.ecs, ctx);
+
+                // Renderables
+                {
+                    let positions = self.ecs.read_storage::<Position>();
+                    let renderables = self.ecs.read_storage::<Renderable>();
+                    let map = self.ecs.fetch::<Map>();
+
+                    let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
+                    data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
+                    for (pos, render) in data.iter() {
+                        let idx = map.xy_idx(pos.x, pos.y);
+                        if map.visible_tiles[idx] {
+                            ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
+                        }
+                    }
+                }
+
+                gui::draw_ui(self, ctx);
+            },
+            RunState::SaveGame => {
+                println!("Saving game");
+                saveload_system::save_game(&mut self.ecs);
+                newrunstate = RunState::MainMenu { menu_selection: MainMenuSelection::LoadGame };
+            }
+            _ => {
+                panic!("Invalid run state: {:?}", newrunstate);
             }
         }
 
-        gui::draw_ui(self, ctx);
+        *self.ecs.write_resource::<RunState>() = newrunstate;
     }
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum RunState {
     Paused,
     Running,
+    SaveGame,
+    MainMenu { menu_selection: gui::MainMenuSelection }
 }
 
 fn main() -> BResult<()> {
@@ -157,6 +193,11 @@ fn main() -> BResult<()> {
     world.register::<WantsToDropItem>();
     world.register::<Ranged>();
     world.register::<InflictsDamage>();
+    world.register::<SerializationHelper>();
+    
+    // Serializing entities
+    world.register::<SimpleMarker<SerializeMe>>();
+    world.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 
     // RNG
     world.insert(RandomNumberGenerator::new());
@@ -182,11 +223,13 @@ fn main() -> BResult<()> {
     let mut entries = BoundedVecDeque::new(127);
     entries.push_back("Welcome to spoorn's dungeon (:<".to_string());
     world.insert(GameLog { entries });
+    
+    // RunState
+    world.insert(RunState::Running);
 
     // GameState
     let gs = State {
         ecs: world,
-        runstate: RunState::Running,
         client: Client::default(),
     };
     rltk::main_loop(context, gs)
