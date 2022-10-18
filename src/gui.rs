@@ -1,7 +1,7 @@
-use crate::components::WantsToDrinkPotion;
-use crate::{CombatStats, GameLog, InBackpack, Map, Name, Player, Position, Potion, State, WantsToDropItem, World};
-use rltk::{Point, Rltk, RGB};
+use rltk::{Point, RGB, Rltk};
 use specs::{Entity, Join, WorldExt};
+
+use crate::{CombatStats, Consumable, GameLog, InBackpack, Map, Name, Player, Position, State, WantsToDropItem, WantsToUseItem, World};
 
 pub fn draw_ui(gs: &mut State, ctx: &mut Rltk) {
     {
@@ -96,14 +96,14 @@ pub fn show_inventory(gs: &mut State, ctx: &mut Rltk) {
                             .expect("Unable to insert item to drop");
                     } else {
                         // Use Items
-                        let potions = gs.ecs.read_storage::<Potion>();
-                        if potions.contains(equippable[selection]) {
-                            let mut drink_potions = gs.ecs.write_storage::<WantsToDrinkPotion>();
-                            drink_potions
+                        let consumables = gs.ecs.read_storage::<Consumable>();
+                        if consumables.contains(equippable[selection]) {
+                            let mut use_item = gs.ecs.write_storage::<WantsToUseItem>();
+                            use_item
                                 .insert(
                                     *player_entity,
-                                    WantsToDrinkPotion {
-                                        potion: equippable[selection],
+                                    WantsToUseItem {
+                                        item: equippable[selection],
                                     },
                                 )
                                 .expect("Unable to insert drink potion intent");

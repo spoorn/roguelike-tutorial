@@ -6,13 +6,10 @@ use bounded_vec_deque::BoundedVecDeque;
 use rltk::{BResult, GameState, Point, RandomNumberGenerator, Rltk, RltkBuilder, VirtualKeyCode};
 use specs::{Join, RunNow, World, WorldExt};
 
-use crate::components::{
-    BlocksTile, CombatStats, InBackpack, Item, Monster, MovementSpeed, Name, Player, Position, Potion, Renderable,
-    SufferDamage, Viewshed, WantsToDrinkPotion, WantsToDropItem, WantsToMelee, WantsToPickupItem,
-};
+use crate::components::{BlocksTile, CombatStats, Consumable, InBackpack, Item, Monster, MovementSpeed, Name, Player, Position, ProvidesHealing, Renderable, SufferDamage, Viewshed, WantsToDropItem, WantsToMelee, WantsToPickupItem, WantsToUseItem};
 use crate::damage_system::DamageSystem;
 use crate::gamelog::GameLog;
-use crate::inventory_system::{ItemCollectionSystem, ItemDropSystem, PotionUseSystem};
+use crate::inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemUseSystem};
 use crate::keys_util::KeyPress;
 use crate::map::{draw_map, Map};
 use crate::map_indexing_system::MapIndexingSystem;
@@ -82,8 +79,8 @@ impl State {
         damage.run_now(&self.ecs);
         let mut inventory = ItemCollectionSystem {};
         inventory.run_now(&self.ecs);
-        let mut potions = PotionUseSystem {};
-        potions.run_now(&self.ecs);
+        let mut items = ItemUseSystem {};
+        items.run_now(&self.ecs);
         let mut drops = ItemDropSystem {};
         drops.run_now(&self.ecs);
         self.ecs.maintain();
@@ -152,10 +149,11 @@ fn main() -> BResult<()> {
     world.register::<WantsToMelee>();
     world.register::<SufferDamage>();
     world.register::<Item>();
-    world.register::<Potion>();
+    world.register::<ProvidesHealing>();
     world.register::<WantsToPickupItem>();
     world.register::<InBackpack>();
-    world.register::<WantsToDrinkPotion>();
+    world.register::<WantsToUseItem>();
+    world.register::<Consumable>();
     world.register::<WantsToDropItem>();
 
     // RNG

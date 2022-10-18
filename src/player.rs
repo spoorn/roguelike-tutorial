@@ -68,7 +68,7 @@ pub fn player_input(gs: &mut State) {
         gs.client.show_inventory = false;
         gs.client.drop_inventory = false;
     }
-    if keys_util::check_press(VirtualKeyCode::G, gs.client.keys.get_mut(&VirtualKeyCode::G)) {
+    if keys_util::check_press(VirtualKeyCode::G, gs.client.keys.get_mut(&VirtualKeyCode::G)) && gs.client.show_inventory {
         gs.client.drop_inventory = !gs.client.drop_inventory;
     }
 

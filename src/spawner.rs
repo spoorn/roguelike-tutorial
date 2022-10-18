@@ -1,8 +1,6 @@
 use crate::map::MAP_WIDTH;
 use crate::rect::Rect;
-use crate::{
-    BlocksTile, CombatStats, Item, Monster, MovementSpeed, Name, Player, Position, Potion, Renderable, Viewshed,
-};
+use crate::{BlocksTile, CombatStats, Consumable, Item, Monster, MovementSpeed, Name, Player, Position, ProvidesHealing, Renderable, Viewshed};
 use rltk::{RandomNumberGenerator, RGB};
 use specs::{Builder, Entity, World, WorldExt};
 
@@ -160,6 +158,7 @@ fn health_potion(ecs: &mut World, x: i32, y: i32) -> Entity {
             name: "Health Potion".to_string(),
         })
         .with(Item {})
-        .with(Potion { heal_amount: 8 })
+        .with(Consumable {})
+        .with(ProvidesHealing { heal_amount: 8 })
         .build()
 }
